@@ -1,0 +1,88 @@
+1: Create varun Directory
+
+mkdir varun
+cd varun
+
+ 2: File Creation & Permission Commands
+
+# Create a new file
+touch myfile.txt
+
+# View file permissions
+ls -l myfile.txt
+
+# Change permissions
+chmod u+rwx myfile.txt   # Owner: read, write, execute
+chmod g+rw myfile.txt    # Group: read, write
+chmod o+r myfile.txt     # Others: read
+
+ 3: Basic Linux File/Directory Commands
+
+mkdir mydir             # Make directory
+cd mydir                # Change into directory
+touch file1.txt         # Create file
+ls                      # List files
+rm file1.txt            # Remove file
+cd ..                   # Go up one directory
+rmdir mydir             # Remove directory
+
+ 4: Navigating & Moving Files
+
+mkdir -p test/nested
+touch test/nested/demo.txt
+mv test/nested/demo.txt .        # Move file here
+cp demo.txt copy.txt             # Copy file
+
+ 5: User & Group Management
+
+sudo groupadd devgroup
+sudo useradd -m -g devgroup devuser
+sudo chown devuser:devgroup myfile.txt
+chmod 770 myfile.txt
+sudo userdel -r devuser
+
+ 6: Git Basics
+
+git init                         # Initialize Git
+git config --global user.name "Varun"
+git config --global user.email "vksuthar04@gmail.com"
+
+echo "Hello" > readme.md
+git add readme.md
+git commit -m "Initial commit"
+
+ 7: Connect & Push to Remote Repository
+
+git remote add origin https://github.com/yourname/repo.git
+git push -u origin master
+
+ 8: Branching, Pushing & Merging
+
+git checkout -b feature-branch
+echo "Feature added" >> readme.md
+git add readme.md
+git commit -m "Add feature"
+git push -u origin feature-branch
+# Use GitHub to open Pull Request and merge
+
+ 9: Undoing & Removing
+
+git reset --soft HEAD~1          # Undo last commit (keep changes)
+git rm file.txt                  # Remove file from repo
+git commit -m "Remove file"
+git push
+
+ 10: Merge Conflicts & Resolution
+
+# After conflict appears
+# Manually edit files to resolve, then:
+git add conflicted-file.txt
+git commit -m "Resolved conflict"
+
+
+ 11: More git command
+git status
+git log
+git diff
+git stash
+git tag -a v1.0 -m "Version 1.0"
