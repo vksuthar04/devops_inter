@@ -1,1 +1,168 @@
+1. Deploy Linux & Windows VMs (SSH & RDP access)
+
+
+   #Linux VM (Ubuntu)
+
+   SSH access: ssh azureuser@<VM_PUBLIC_IP>
+
+   #Install GUI + xRDP:
+
+   sudo apt-get update
+   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xfce4 xfce4-session xrdp
+   sudo adduser xrdp ssl-cert
+   echo xfce4-session > ~/.xsession
+   sudo systemctl enable --now xrdp
+
+   Allow RDP (3389) in NSG, then use Windows/Mac RDP client → connect to <VM_PUBLIC_IP>:3389
+
+  
+   #Windows Server VM
+
+   Provision, ensure port 3389 allowed in NSG, and Public IP attached.
+
+   RDP via Azure Portal → Download .rdp file → connect 
+   Microsoft Learn
+
+
+  (Optional) Enable SSH by installing OpenSSH Server on Windows and connect via
+
+   ssh Administrator@<WINDOWS_VM_IP>
+   `` :contentReference[oaicite:9]{index=9}.
+
+
+2. Create App Service Plan & Web App
+
+
+   #Create App Service Plan (e.g., B1 Linux):
+
+   az appservice plan create -g MyRG -n MyPlan --is-linux --sku B1
+
+
+
+   #Create Web App with static HTML:
+
+   mkdir htmlapp && cd htmlapp
+   # add index.html with “Welcome”
+   az webapp up --location eastus --name MySimpleApp --html
+
+
+   #Deploy sample ASP.NET app (optional):
+
+
+   azd init --template https://github.com/Azure-Samples/quickstart-deploy-aspnet-core-app-service.git
+   azd up
+
+
+3. Azure Container Registry (ACR) → Container Instance
+  
+
+   A. Create & Push Image to ACR
+
+   az acr create -g MyRG -n MyRegistry --sku Basic
+   az acr login -n MyRegistry
+
+   docker pull nginx
+   docker tag nginx MyRegistry.azurecr.io/myapp/nginx:latest
+   docker push MyRegistry.azurecr.io/myapp/nginx:latest
+
+
+   B. Deploy Azure Container Instance (ACI)
+      Via Portal or CLI:
+
+
+   az container create -g MyRG \
+   -n mycontainer --image MyRegistry.azurecr.io/myapp/nginx:latest \
+   --registry-login-server MyRegistry.azurecr.io \
+   --registry-username <user> --registry-password <pass> \
+   --dns-name-label mynginxapp --ports 80
+
+   Access the deployed app at: http://mynginxapp.<region>.azurecontainer.io.
+
+
+4. Virtual Network Architecture
+
+   A. Single VNet, 2 Subnets
+
+     Create VNet with:
+
+     Subnet-1 for Linux & Windows VMs,
+     Subnet-2 for SQL Server.
+
+     Deploy VMs in respective subnets.
+
+  B. Hub-and-Spoke (4 VNets)
+
+     Create Management (Hub), Production, Test, Dev VNets.
+
+     Set up VNet peering (spokes ↔ hub).
+     Launch one VM in each VNet.
+
+     From Management VM, ping private IPs of all other VMs to verify connectivity.
+
+
+
+5. Load Balancers & Application Gateway
+  
+   🔹 Internal & External Load Balancer
+
+    Create two separate Load Balancer resources.
+    Add multiple VMs to backend pool.
+    Configure health probes (TCP/HTTP) and LB rules to distribute traffic.
+
+  🔹 Application Gateway
+
+   Provision via Portal CLI.
+   Configure:
+   Public IP
+   Listeners (HTTP/HTTPS)
+   Backend pools (your VMs or services)
+   Routing rules
+   Access via Application Gateway's public endpoint.
+
+
+6. DNS + Domain on VM
+
+ 
+
+    Buy/point domain A record to your VM or App Gateway public IP.
+
+    On VM:
+
+    Windows: Install DNS Server role.
+    Linux: Install BIND.
+    Create DNS zone and records (A, CNAME)
+    Test via:
+
+
+    nslookup <your-domain>
+    ping <host-internal>
+
+    Ensure internal resolution and external routing.
+
+
+
+7. Azure Storage Account, Blobs, Files & Azure File Sync
+
+  
+    Create Storage Account (Standard GRZ).
+
+    Blob Service:
+
+    Upload files via Portal or Storage Explorer.
+    Use Access Keys and SAS tokens for access.
+    Create stored access policies, experiment with access tiers, lifecycle rules, and ensure replication (e.g., RA-GRS).
+ 
+    File Share:
+
+    Create SMB share, mount on Linux or Windows:
+
+    mount -t cifs //<storage>.file.core.windows.net/share /mnt/share -o vers=3.0,username=<account>,password=<key>,dir_mode=0777,file_mode=0777
+
+    Azure File Sync:
+
+    Deploy agent on a Windows VM and sync File Share to VM file system.
+
+
+
+
 
