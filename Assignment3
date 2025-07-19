@@ -1,1 +1,270 @@
+1. Observe Assigned Subscriptions & Azure Entra ID
+
+
+   a.Login & list subscriptions:
+
+     az login
+     az account list --output table
+
+
+   b.Set your working subscription:
+
+     az account set --subscription "<SUBSCRIPTION_ID_OR_NAME>"
+
+ 
+   c.View assigned subscriptions:
+
+     az account list --all --output table
+
+
+   d.Observe or create an Azure Entra ID (AAD):
+
+     Navigate to Azure Active Directory in Portal to view existing tenant (Entra ID).
+     
+     Or sign up/log in with your personal account to create a new one.
+
+  
+   e.List users and groups:
+
+     az ad user list --output table
+
+     az ad group list --output table
+ 
+
+
+2.  Create Test Users & Groups, Assign Role, Test
+
+     
+    a.Create a user & a group:
+
+      az ad user create --display-name "Test User" \
+      --user-principal-name testuser@<your-tenant>.onmicrosoft.com \
+      --password "ComplexP@ssw0rd!"  
+      az ad group create --display-name "Test Group" --mail-nickname testgroup
+      az ad group member add --group "Test Group" --member-id <testuser-object-id>
+
+
+    b.Assign built‑in RBAC role to user/group:
+
+
+     az role assignment create --assignee testuser@... \
+     --role "Reader" \
+     --scope "/subscriptions/<SUB_ID>"
+    
+ 
+    c.Verify assignment & test access:
+
+    az role assignment list --assignee testuser@... --all
+    az login --username testuser@... --password "ComplexP@ssw0rd!"
+    az vm list  # should succeed with Reader role
+
+
+
+
+3. Create Custom Role & Assign/Test
+
+
+   a.Create JSON file (e.g., CustomVMReader.json):
+
+   {
+  "Name": "Custom VM Reader",
+  "Description": "Read-only access to VMs",
+  "Actions": [
+    "Microsoft.Compute/virtualMachines/read",
+    "Microsoft.Network/networkInterfaces/read",
+    "Microsoft.Storage/storageAccounts/read",
+    "*/read"
+   ],
+  "NotActions": [],
+  "DataActions": [],
+  "NotDataActions": [],
+  "AssignableScopes": [
+    "/subscriptions/<SUB_ID>"
+  ]
+  }
+
+
+   b.Upload role:
+
+   az role definition create --role-definition CustomVMReader.json
+
+
+   c.Assign custom role to user/group:
+
+     az role assignment create --assignee testuser@... \
+     --role "Custom VM Reader" \
+     --scope "/subscriptions/<SUB_ID>"
+
+   d.Test as test user:
+
+     az login ...
+     az vm list  # should work
+     az vm delete --name <VM> --resource-group <RG>  
+     # Should error due to insufficient permissions (delete).
+
+
+
+4. Create VM & VNet via Azure CLI
+
+    a.Create resource group:
+
+     az group create -n MyRG -l eastus
+
+
+    b.Create VNet + subnet:
+
+     az network vnet create \
+  --name MyVNet --resource-group MyRG \
+  --address-prefix 10.0.0.0/16 \
+  --subnet-name MySubnet --subnet-prefix 10.0.0.0/24
+
+
+    c.Create VM inside VNet:
+
+    az vm create \
+  --resource-group MyRG --name MyVM \
+  --vnet-name MyVNet --subnet MySubnet \
+  --image UbuntuLTS --admin-username azureuser \
+  --generate-ssh-keys
+
+
+
+5. Create & Assign Policy at Subscription Level
+
+
+   a.Create a policy definition JSON (e.g., policyNotAllowed.json):
+
+
+     {
+     "if": { "field": "location", "notIn": ["eastus"] },
+     "then": { "effect": "deny" }
+     }
+
+
+   b.Create policy:
+
+
+     az policy definition create --name "deny-not-eastus" \
+     --rules policyNotAllowed.json \
+     --mode "All" \
+     --display-name "Deny non-EastUS deployment"
+  
+ 
+   c.Assign at subscription scope:
+
+
+     az policy assignment create \
+     --name "deny-non-eastus-assignment" \
+     --policy "deny-not-eastus" \
+     --scope "/subscriptions/<SUB_ID>"
+   
+   d.Test: Attempt to deploy in another region → should fail.
+
+
+
+6.  Create Azure Key Vault & Manage Secrets
+
+
+    a.Create Key Vault:
+
+    az keyvault create \
+    --name MyKeyVault --resource-group MyRG \
+    --location eastus
+
+   
+    b.Add a secret:
+
+    az keyvault secret set \
+    --vault-name MyKeyVault \
+    --name "DbPassword" \
+    --value "P@ssw0rd123"
+ 
+ 
+    c.Configure access policy for a user:
+
+
+      az keyvault set-policy \
+      --name MyKeyVault \
+      --object-id <testuser-object-id> \
+      --secret-permissions get list
+
+   
+    d.Retrieve secret as that user:
+
+
+      az login ...
+      az keyvault secret show \
+      --vault-name MyKeyVault \
+      --name DbPassword \
+      --query "value" -o tsv
+
+
+
+7. Create a VM via PowerShell
+
+
+       a.Use Azure PowerShell in Cloud Shell or locally:
+
+
+         Connect-AzAccount
+         New-AzResourceGroup -Name PSRG -Location eastus
+         $subnet = New-AzVirtualNetworkSubnetConfig -Name PSSubnet -AddressPrefix "10.1.0.0/24"
+         $vnet = New-AzVirtualNetwork -Name PSVNet -ResourceGroupName PSRG -Location eastus -AddressPrefix "10.1.0.0/16" -Subnet $subnet
+         $pip = New-AzPublicIpAddress -Name PSPIP -ResourceGroupName PSRG -Location eastus -AllocationMethod Dynamic
+         $nsgRule = New-AzNetworkSecurityRuleConfig -Name "AllowSSH" -Protocol Tcp -Direction Inbound -Priority 1000 -SourceAddressPrefix "*" -SourcePortRange "*" -DestinationPortRange 22 -Access Allow
+         $nsg = New-AzNetworkSecurityGroup -ResourceGroupName PSRG -Location eastus -Name PSNSG -SecurityRules $nsgRule
+         $nic = New-AzNetworkInterface -Name PSNic -ResourceGroupName PSRG -Location eastus -SubnetId $vnet.Subnets[0].Id -PublicIpAddressId $pip.Id -NetworkSecurityGroupId $nsg.Id
+         $cred = Get-Credential -Message "Enter admin credentials"
+         New-AzVM -ResourceGroupName PSRG -Name PSVM -Location eastus -NetworkInterfaceId $nic.Id -Image "UbuntuLTS" -Credential $cred
+ 
+
+8. VM Backup Scheduling & CPU Alert
+
+   
+       A. Backup with Recovery Services Vault
+
+
+         #Create vault:
+
+          az backup vault create -g MyRG --name MyVault -l eastus
+         
+  
+         #Create backup policy (with daily 3:00 AM retention):
+
+
+          az backup policy set \
+          --vault-name MyVault \
+          --resource-group MyRG \
+          --name "Daily3AMPolicy" \
+          --policy '{"schedulePolicy":{"scheduleRunFrequency":"Daily","scheduleRunTimes":["03:00"]},
+            "retentionPolicy":{"dailySchedule":{"retentionTimes":["03:00"],"retentionDuration":{"count":30,"durationType":"Days"}}}}'
+
+
+         #Enable VM protection:
+
+         az backup protection enable-for-vm \
+         --resource-group MyRG \
+         --vault-name MyVault \
+         --vm MyVM \
+         --policy-name Daily3AMPolicy
+
+
+      B. CPU Alert Rule
+
+
+        az monitor metrics alert create \
+        --name "HighCpuAlert" \
+        --resource-group MyRG \
+        --scopes $(az vm show -g MyRG -n MyVM --query "id" -o tsv) \
+        --condition "avg Percentage CPU > 80" \
+        --description "Alert if CPU > 80%" \
+        --action /subscriptions/<SUB_ID>/resourceGroups/MyRG/providers/microsoft.insights/actionGroups/<actionGroupName>
+
+       
+        Configure an Action Group in Portal to send email when triggered.
+ 
+
+
+
+
 
