@@ -1,1 +1,298 @@
+1. ReplicationController (RC)
+
+   rc.yaml:
+
+   yaml
+
+    apiVersion: v1
+    kind: ReplicationController
+    metadata:
+    name: nginx-rc
+    spec:
+    replicas: 2
+    selector:
+    app: nginx-rc
+    template:
+    metadata:
+      labels:
+        app: nginx-rc
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
+
+
+    Commands:
+
+
+     kubectl apply -f rc.yaml
+     kubectl get rc
+     kubectl get pods -l app=nginx-rc
+     kubectl scale rc nginx-rc --replicas=3
+
+
+    #Pros:
+
+      Simple and lightweight for maintaining a fixed number of pods.
+
+      Automatically replaces crashed pods 
+
+    #Cons:
+
+     Equality-only selectors.
+
+     No rollout or rollback support; updates require manual intervention.
+
+     Deprecated in favor of ReplicaSet/Deployment 
+
+
+
+2. ReplicaSet (RS)
+
+   #rs.yaml:
+
+   yaml
+
+   apiVersion: apps/v1
+   kind: ReplicaSet
+   metadata:
+   name: nginx-rs
+   spec:
+   replicas: 2
+   selector:
+   matchLabels:
+   app: nginx-rs
+   template:
+   metadata:
+   labels:
+   app: nginx-rs
+   spec:
+   containers:
+   - name: nginx
+   image: nginx:latest
+   ports:
+   - containerPort: 80
+
+
+  #Commands:
+
+  kubectl apply -f rs.yaml
+  kubectl get rs
+  kubectl scale rs nginx-rs --replicas=4
+
+  
+  #Pros:
+
+  Supports set-based selectors (matchExpressions) 
+
+  More flexible than RC.
+
+  #Cons:
+
+   No native rollout/rollback support — better used via Deployments 
+
+   Typically managed by Deployment in real-world scenarios.
+
+
+3. Deployment
+
+   #deploy.yaml:
+
+    yaml
+
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+    name: nginx-deploy
+    spec:
+    replicas: 3
+    selector:
+    matchLabels:
+    app: nginx-deploy
+    template:
+    metadata:
+    labels:
+    app: nginx-deploy
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+    strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+
+
+  #Commands:
+
+
+    kubectl apply -f deploy.yaml
+    kubectl rollout status deployment/nginx-deploy
+    kubectl set image deployment/nginx-deploy nginx=nginx:1.16.0
+    kubectl rollout status deployment/nginx-deploy
+    kubectl rollout undo deployment/nginx-deploy
+
+  #Pros:
+
+    Declarative rolling updates and automated rollbacks 
+
+    Manages underlying ReplicaSets.
+
+    Can pause/resume rollouts and scale easily.
+
+  #Cons:
+
+    Slightly more complex manifest.
+
+    Additional controller overhead compared to RS/RC.
+
+
+
+4. Kubernetes Service Types
+
+
+   Use the same Deployment above; add these services:
+ 
+   
+   #ClusterIP
+ 
+    yaml
+
+    apiVersion: v1
+    kind: Service
+    metadata:
+    name: nginx-clusterip
+    spec:
+    type: ClusterIP
+    selector:
+    app: nginx-deploy
+    ports:
+    - port: 80
+    targetPort: 80
+
+  #Advantages:
+
+  Internal-only, ideal for inter-pod communication 
+
+
+  #Disadvantages:
+
+  Not accessible from outside the cluster.
+
+
+  #NodePort
+
+   yaml
+
+   apiVersion: v1
+   kind: Service
+   metadata:
+   name: nginx-nodeport
+   spec:
+   type: NodePort
+   selector:
+   app: nginx-deploy
+   ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30007
+
+   #Advantages:
+
+   Exposes service externally via any node IP and fixed port 
+
+   #Disadvantages:
+
+   Requires node IP; port range is limited; not ideal for production.
+ 
+   #LoadBalancer
+ 
+   yaml
+
+   apiVersion: v1
+   kind: Service
+   metadata:
+   name: nginx-lb
+   spec:
+   type: LoadBalancer
+   selector:
+   app: nginx-deploy
+   ports:
+   - port: 80
+   targetPort: 80
+
+   #Advantages:
+
+   Cloud provider provisions a load balancer for external access 
+
+
+  #Disadvantages:
+
+   Dependent on cloud provider; may incur cost.
+
+
+
+5. PersistentVolume (PV) & PersistentVolumeClaim (PVC)
+ 
+   #Administrator creates a PV:
+
+   yaml
+
+
+   apiVersion: v1
+   kind: PersistentVolume
+   metadata:
+   name: nginx-pv
+   spec:
+   capacity:
+   storage: 1Gi
+   accessModes:
+   - ReadWriteOnce
+   hostPath:
+   path: /mnt/data
+
+
+  #Developer creates a PVC:
+  
+   yaml
+
+  apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+  name: nginx-pvc
+  spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+  #Pod consuming PVC:
+ 
+   yaml
+
+   apiVersion: v1
+   kind: Pod
+   metadata:
+   name: nginx-pod
+   spec:
+   containers:
+   - name: nginx
+    image: nginx:latest
+    volumeMounts:
+    - mountPath: "/usr/share/nginx/html"
+      name: storage
+   volumes:
+  - name: storage
+    persistentVolumeClaim:
+      claimName: nginx-pvc
+ 
+   #Advantages:
+
+   Decouples storage from pods; provides persistent, reusable volumes 
 
