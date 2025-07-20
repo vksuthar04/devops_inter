@@ -1,1 +1,114 @@
+ 1: Configure Dashboard & Work-Item Queries
 
+
+    A. Create Flat-list Queries
+
+       Navigate to Boards → Queries → New Query and choose Flat-list.
+
+       Add filters (e.g., Assigned To = @Me, State = Active) as needed.
+
+       Save the query under Shared Queries or in a team-specific folder 
+
+
+   B. Create Charts Based on Queries
+
+       Go to Queries → Charts, click New chart, select your flat-list query.
+
+       Choose chart type (pie, bar, trend), and configure grouping, labels, and title 
+
+       Save the chart.
+
+    C. Add Widgets to Dashboard
+
+      Open or create a Dashboard, enter Edit mode.
+
+      Add Query Results widgets and Chart for Work Items widget.
+
+      Associate each widget with your saved queries/charts, configure as needed 
+
+
+
+ 2: Use Pipeline Variables
+
+ A. Inline Variables in YAML
+
+   yaml
+
+   variables:
+   buildConfiguration: 'Release'
+
+   steps:
+   - script: |
+   echo "Config: $(buildConfiguration)"
+
+  
+   Use built-in variables like Build.SourcesDirectory or System.DefaultWorkingDirectory 
+
+
+
+ B. Create & Reference Variable Groups
+
+   Go to Pipelines → Library → + Variable group.
+
+   Define variables (secure secrets as needed).
+
+   In YAML:
+
+    yaml
+
+
+    variables:
+    - group: MySecretsGroup
+    - name: apiUrl; value: 'https://api.example.com'
+    
+    Scope a group to specific pipelines or stages 
+
+
+ 3: Create Service Connection
+
+   Navigate to Project Settings → Service connections → New service connection.
+
+   Pick type (e.g., Azure Resource Manager, ACR, Kubernetes).
+
+   Provide credentials, verify, name it, and save without granting blanket access 
+
+
+   In pipelines:
+
+   yaml
+
+   - task: AzureCLI@2
+    inputs:
+    azureSubscription: 'MyAzureServiceConnection'
+
+
+ 4: Setup Self-Hosted Agent
+
+  1.Create/choose a Linux or Windows machine.
+
+  2.Install the agent: Follow instructions under Pipelines → Agent pools, or use Linux steps from Microsoft docs
+
+  3. Register the agent and assign it to a pool.
+
+  4. Use pool: name: MyPool in YAML to run jobs on your agent.
+
+
+5: Configure Pre- & Post-Deployment Approvals
+
+  In classic Release pipelines, go to Environments → Pre-deployment conditions.
+
+  Add Approvals and checks, assign approvers/groups, set timeouts.
+
+  Repeat in Post-deployment conditions 
+
+
+ 
+  In YAML with environments:
+
+   yaml
+
+    environments:
+  - name: production
+    approval:
+    approvals:
+      - name: 'Prod Approver'
