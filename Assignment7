@@ -1,1 +1,92 @@
+1.  Create Project & User Groups
+
+
+   A. Create a Project
+     
+      Sign into Azure DevOps, click New project, enter a name (e.g. MyProject), and click Create.
+
+   B. Add Users & Create Security Groups
+
+      Go to Organization Settings → Users → Add Users, assign access levels (e.g., Basic) and add them to your project 
+
+      In Project Settings → Permissions, select New Group to create groups like Admins, Contributors, Reviewers 
+
+      Add users to these groups via the Members tab 
+
+
+
+2.  Branch Policies: Restrict Direct Merge to master
+
+   
+  A. Apply Required Branch Policy
+
+     Navigate to Repos → Branches and select the … → Branch Policies for master.
+
+     Enable policies like Require pull request, specify minimum reviewers, linked work items, build validation, etc. 
+
+
+  B. Secure Branch Permissions
+
+     In Repos → Branches → … → Branch security, add groups:
+
+       Set Contributors:
+
+         Contribute = Deny
+
+         Bypass policies = Deny
+
+       Set Admins:
+
+         Contribute, Bypass policies = Allow 
+
+  
+     This ensures Contributors cannot push or bypass PR requirements, but admins still can.
+
+
+
+3.  Branch Filters & Path Filters
+
+   #Under Branch Policies, configure:
+
+   Build validation filters: e.g., apply build only on src/* path changes.
+   
+   Required reviewers by path: auto-add reviewers when certain files change 
+
+
+4.  Pull Requests Workflow
+
+    Contributors create feature branches and open PRs to master.
+
+    PRs require:
+
+      X reviewers
+
+      Passing builds
+
+      Completed work items linked (optional)
+
+    Only Admins can complete the PR, due to branch permissions.
+
+    Documentation: PR creation, review, and policies 
+
+
+5.  Build & Release Pipelines Configurations
+
+  A. Apply Triggers
+
+    In pipelines build, configure trigger block for CI on specific branches (e.g., master, release/*) 
+
+  B. Add Gates in Release Pipelines
+
+    In Release → Environments, set Pre-deployment conditions → Gates:
+
+    e.g., Azure Monitor, Work items linked, Approvals, etc. 
+
+6.  Work Items Integration
+
+    Enable Work item linking in branch policies to ensure traceability.
+
+    In build pipelines, add tasks to Automatically link work items from commits/PR descriptions.
+
+    Use Boards to manage backlog and sprint tasks 
 
