@@ -1,1 +1,105 @@
 
+1. Introduction to Containerization & Docker Fundamentals
+
+
+   #What are containers?
+
+   Lightweight, OS-level virtualization units sharing the host kernel (via namespaces & cgroups), packaged with all needed dependencies 
+   Docker Documentation
+
+
+   #Why use Docker?
+   Ensures environment consistency, portability between systems, faster deployment cycles, and efficient resource use 
+   iximiuz Labs
+
+
+   #Core Docker architecture:
+
+   Docker client (docker) communicates via REST API or socket.
+   Docker daemon (dockerd) handles building, running, network, volumes.
+   Docker registries (Docker Hub or private) store/pull/push images 
+
+
+2. Docker Installation & Basic Operations
+
+   Install Docker Desktop or Docker Engine depending on your OS (Windows/Linux/Mac) 
+
+   Key commands:
+
+   docker run hello-world → test installation 
+   docker run -it ubuntu /bin/bash → interactive shell
+   docker ps, docker stop, docker rm, docker logs, docker exec ... for container lifecycle management.
+ 
+
+3. Building Images – Dockerfile
+
+   Dockerfile basics: Use FROM, RUN, COPY, EXPOSE, CMD, etc. Each instruction forms an immutable layer 
+
+  #Image creation flow:
+  -Write Dockerfile
+  -Run docker build -t myapp .
+  -docker images and string of layers
+  -Launch with docker run
+
+
+4. Multi-Stage Builds
+
+   Use multiple FROM stages to separate build artifacts from final runtime image 
+   Copy only needed compiled binaries, excluding build tools → leaner, secure, smaller images 
+   Example syntax with AS builder and COPY --from=builder.
+
+
+5. Docker Registry & Publishing Images
+
+   #Docker Hub / registry workflow:
+
+    docker login
+    docker build -t username/repo:tag .
+    docker push username/repo:tag
+    docker pull username/repo:tag
+   
+    Also applicable to private registries like ACR or ECR.
+
+
+6. Running Containers – Methods
+ 
+   From Dockerfile with docker build
+   Direct pull & run: docker pull alpine && docker run -it alpine sh
+   #Interactive vs detached modes with -it and -d flags.
+
+
+7. Networking & Custom Bridge Networks
+
+   By default, containers are attached to the bridge network.
+
+   Use docker network create mynet and --network mynet to group containers, enabling container-to-container hostnames and better isolation.
+
+ 
+8. Volumes & Persistent Storage
+
+   Use volumes to persist data outside container lifecycle:
+
+   docker volume create mydata
+   docker run -v mydata:/data …
+
+   Useful for databases, logs, uploads, etc.
+
+
+9. Docker Compose & Multi-Container Apps
+
+   Use docker-compose.yml to define services, networks, volumes.
+
+   One command orchestration:
+ 
+   docker compose up --build   
+   Simplifies multi-service setups like web + DB + cache.
+
+
+10. Security Best Practices
+
+   Keep base images minimal and up-to-date.
+
+   Use multi-stage builds to avoid shipping build tools.
+
+   Avoid secrets in images or code; use environment variables, Docker secrets, or mounted files. Scan images for vulnerabilities (CVE scanners). If interested, see recent research on container secrets 
+
