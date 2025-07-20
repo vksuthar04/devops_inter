@@ -1,1 +1,86 @@
+ 1. Create a Local Cluster with Minikube
 
+   #Quickstart:
+    
+    minikube start
+
+    Requires ≥2 CPUs, 2 GB RAM, 20 GB disk 
+    This boots a single-node Kubernetes cluster inside a VM/container on your laptop.
+
+
+   #Verify Setup:
+
+    minikube version
+    kubectl version
+    kubectl cluster-info
+    kubectl get nodes
+
+   You should see one "Ready" node along with the control plane 
+
+
+   #Access Dashboard:
+
+   minikube dashboard
+   
+   Launches the Kubernetes Dashboard in your browser 
+
+
+   #Advanced Options:
+
+   -Multi-node:
+
+   minikube start --nodes=3
+  
+   for simulating a cluster with several nodes 
+
+
+   -Specify driver & resources:
+
+   minikube start --driver=docker --cpus=2 --memory=3072
+
+   ideal if using Docker as the VM backend 
+
+
+
+ 2. Build a Cluster with kubeadm
+ 
+   Ideal for a control-plane + worker-node setup using Linux VMs or cloud servers.
+
+
+   #Prerequisites:
+
+   Ubuntu/CentOS hosts (≥2 GB RAM control-plane, ≥1 GB each worker)
+   Disable swap, enable bridge networking, install container runtime (e.g., containerd or Docker) 
+
+
+   #Install Tools:
+
+   sudo apt update
+   sudo apt install -y docker.io kubeadm kubelet kubectl
+   sudo systemctl enable --now docker kubelet
+   
+
+   #Initialize Control Plane (on master):
+
+   sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+
+   
+   #Set up kubeconfig:
+
+   mkdir -p $HOME/.kube
+   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+   sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+
+   #Install a Pod Network Add‑On (e.g., Flannel or Calico):
+
+   kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/…/kube-flannel.yml
+  
+
+   #Join Worker Nodes:
+  
+   Copy and run the kubeadm join ... command from the master output on each worker.
+   Verify with:
+
+
+   kubectl get nodes
