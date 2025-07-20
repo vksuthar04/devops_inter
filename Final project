@@ -1,1 +1,86 @@
+1.  Install Docker on the VM
 
+
+ #Ubuntu / Debian
+
+
+    bash
+
+    sudo apt update
+    sudo apt install -y docker.io
+    sudo systemctl enable --now docker
+    
+ #CentOS / RHEL
+ 
+    bash
+
+    sudo yum install -y docker
+    sudo systemctl enable --now docker
+   
+ 
+ #Verify with:
+
+    bash
+
+    docker --version
+    docker run hello-world
+
+ This ensures Docker is properly installed and running.
+
+
+2.  Pull Application Image
+
+
+    Assuming you have a container image (e.g. from Docker Hub or ACR):
+
+    bash
+
+    docker pull yourusername/your-app:latest
+    This fetches the packaged application image to your VM.
+
+
+3.  Launch Container with Network Setup
+   
+    Run the container, mapping the app’s internal port to VM’s host port:
+
+    bash
+
+    docker run -d --name myapp \
+    -p 8080:80 \
+    yourusername/your-app:latest
+   
+  
+   -d: run container in background
+
+   --name: assigns container a name
+
+   -p HOST:CONTAINER: publishes port 80 inside the container to port 8080 on the host 
+
+
+
+4.  Networking Configuration
+
+
+   Ensure VM firewall (like ufw or iptables) allows inbound traffic on the published port:
+
+
+    bash
+
+    sudo ufw allow 8080/tcp
+   
+
+ #If VM is near NAT or virtualization:
+
+  Use bridged networking, or configure port forwarding in your virtualization host to direct external traffic to the VM’s 8080 
+
+
+
+5. Access the Application
+   
+   Now you can access the app by visiting:
+
+    cpp
+
+    http://<VM-IP>:8080
+    If Docker Desktop or VirtualBox is being used, ensure port settings correctly forward traffic to VM 
+    
